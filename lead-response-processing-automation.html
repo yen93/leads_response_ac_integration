@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lead Response Processing Automation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Lato', Arial, sans-serif; background: #ffffff; }
+  .col { max-width: 760px; margin: 0 auto; padding: 32px 20px; }
+  .header-band {
+    background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(https://ssl.gstatic.com/atari/images/simple-header-blended-small.png) center/cover, #37474F;
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+  }
+  .header-band h1 {
+    color: #ffffff;
+    font-family: 'Lato', sans-serif;
+    font-weight: 300;
+    font-size: 44px;
+    letter-spacing: 0.5px;
+    margin: 0 0 12px 0;
+    line-height: 1.2;
+  }
+  .header-band .subtitle {
+    color: #ffffff;
+    font-family: 'Lato', sans-serif;
+    font-weight: 300;
+    font-size: 18px;
+    margin: 0;
+    opacity: 0.9;
+  }
+  .intro-band { background: #323232; }
+  .intro-band p {
+    color: #ffffff;
+    font-family: 'Lato', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .header-strip { background: #F2F2F2; }
+  .header-strip .col { padding: 32px 20px; }
+  .header-strip h2 {
+    color: #37474F;
+    font-family: 'Lato', sans-serif;
+    font-weight: 400;
+    font-size: 26px;
+    margin: 0;
+  }
+  .content-band { background: #ffffff; }
+  .content-band h3 {
+    color: #37474F;
+    font-family: 'Lato', sans-serif;
+    font-weight: 700;
+    font-size: 19px;
+    margin: 24px 0 8px 0;
+  }
+  .content-band h3:first-child { margin-top: 0; }
+  .content-band p {
+    color: #212121;
+    font-family: 'Lato', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0 0 16px 0;
+  }
+  .content-band ul, .content-band ol {
+    color: #212121;
+    font-family: 'Lato', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    padding-left: 24px;
+    margin: 0 0 16px 0;
+  }
+  .content-band li { margin-bottom: 10px; }
+  .content-band a { color: #37474F; text-decoration: underline; }
+  .content-band code {
+    background: #F2F2F2;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 14px;
+  }
+  .placeholder-img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    margin: 8px 0 4px 0;
+    border: 1px solid #e0e0e0;
+  }
+  .placeholder-caption {
+    color: #757575;
+    font-family: 'Lato', sans-serif;
+    font-size: 13px;
+    font-style: italic;
+    margin: 0 0 16px 0;
+  }
+  .closing-band p {
+    color: #212121;
+    font-family: 'Lato', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0 0 4px 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER BANNER (top of page only) -->
+<div class="header-band">
+  <div>
+    <h1>Lead Response Processing Automation</h1>
+    <p class="subtitle">Per-reply ActiveCampaign notes and AI stage changes</p>
+  </div>
+</div>
+
+<!-- TOP INTRO DARK BAND -->
+<div class="intro-band">
+  <div class="col">
+    <p>When a sales lead replies to one of James's outbound follow-ups, this automation acts on that reply automatically: it records the reply, writes a note on the lead's ActiveCampaign deal summarising what they said, and lets an AI model decide whether the deal should move to a new sales stage. It runs quietly in the background, once a minute, inside James's Gmail.</p>
+  </div>
+</div>
+
+<div class="header-strip">
+  <div class="col"><h2>Where it fits in the pipeline</h2></div>
+</div>
+<div class="content-band">
+  <div class="col">
+    <p>This is the last step in a two-part flow. An upstream automation already watches James's outbound follow-up threads and, the moment a lead replies, moves that thread into a dedicated Gmail label and records the lead's details.</p>
+    <ul>
+      <li><strong>Upstream (already running):</strong> detects the lead reply, records the lead (email, and its ActiveCampaign contact / account / deal), and files the thread under the label <code>@-sales-to-action-outbound-lead-responses</code>.</li>
+      <li><strong>This automation (new):</strong> watches that same label and processes each reply — logging it, adding the deal note, and updating the stage where warranted.</li>
+    </ul>
+    <p>Because the upstream step has already figured out which ActiveCampaign deal the lead belongs to, this step simply reads that link and acts on the right deal.</p>
+  </div>
+</div>
+
+<div class="header-strip">
+  <div class="col"><h2>What it does on each reply</h2></div>
+</div>
+<div class="content-band">
+  <div class="col">
+    <p>Every minute the automation checks the label for lead replies received in the last 10 minutes. For each new reply it runs these steps in order:</p>
+    <ol>
+      <li><strong>Log the reply.</strong> It records one entry per reply message so the same email is never processed twice.</li>
+      <li><strong>Summarise the message.</strong> An OpenAI model reads the reply and produces a short, plain-language summary of what the lead actually said (stripping greetings, signatures and quoted history).</li>
+      <li><strong>Add a deal note.</strong> It posts a note on the lead's ActiveCampaign deal reading <em>"Lead responded with &lt;summary&gt;"</em>, followed by a line noting the note was posted through the automation.</li>
+      <li><strong>Decide on the stage.</strong> The AI judges whether the reply means the deal should move to a different sales stage.</li>
+      <li><strong>Change the stage (only if needed).</strong> If a different stage clearly applies, it moves the deal, adds a second note recording the change, and timestamps it. If no change is warranted, the deal stays exactly where it is.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="header-strip">
+  <div class="col"><h2>Sales stages the AI can choose from</h2></div>
+</div>
+<div class="content-band">
+  <div class="col">
+    <p>The AI may only move a deal into one of the following stages, or leave it unchanged:</p>
+    <ul>
+      <li>CONTACT MADE - NO REPLY</li>
+      <li>CONTACT MADE - REPLY NO</li>
+      <li>CONTACT MADE - REPLY YES</li>
+      <li>F2F / SALES DEMO BOOKED</li>
+      <li>Missed Deals (Due to Conflict of Schedule, When Schedules Collide)</li>
+      <li>Unqualified: Interest shown (no needs defined - no budget / dates / event)</li>
+      <li>Qualified: Sent proposal + avails NO AUTOMATION FOLLOWUP</li>
+      <li>DEAL WON: SOW NOT returned - awaiting briefing call, travel etc</li>
+    </ul>
+    <p>If the reply doesn't clearly fit any of these, or already matches the deal's current stage, the automation makes no change — it only ever moves a deal when there's a clear reason to.</p>
+  </div>
+</div>
+
+<div class="header-strip">
+  <div class="col"><h2>What it records</h2></div>
+</div>
+<div class="content-band">
+  <div class="col">
+    <p>Each processed reply produces one tracked entry, holding:</p>
+    <ul>
+      <li>A link to the lead it belongs to.</li>
+      <li>The Gmail message identifier — used to guarantee a reply is handled only once.</li>
+      <li>The time the deal note was added.</li>
+      <li>The time the stage was changed (left blank when no change was made).</li>
+    </ul>
+    <p>These timestamps make the automation safe to re-run: if a step doesn't complete, the next pass picks up where it left off rather than duplicating work.</p>
+  </div>
+</div>
+
+<div class="header-strip">
+  <div class="col"><h2>Reliability and safeguards</h2></div>
+</div>
+<div class="content-band">
+  <div class="col">
+    <ul>
+      <li><strong>No duplicates.</strong> Each reply message is processed once; repeats are skipped.</li>
+      <li><strong>Only genuine lead replies.</strong> James's own follow-ups and automated bounce / system messages are ignored — only external replies from the lead trigger action.</li>
+      <li><strong>Safe retries.</strong> If ActiveCampaign, the AI, or the database is briefly unavailable, the reply is simply retried on a later run; nothing is lost.</li>
+      <li><strong>One run at a time.</strong> A lock prevents overlapping runs from stepping on each other.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="header-strip">
+  <div class="col"><h2>Running costs</h2></div>
+</div>
+<div class="content-band">
+  <div class="col">
+    <p>The one-minute schedule itself is free. Gmail, the scheduling platform, the database, and the ActiveCampaign updates are all either free or already covered by existing subscriptions.</p>
+    <p>The only usage-based cost is the OpenAI summary, billed per lead reply — a fraction of a cent each — not per minute. Runs where no new reply has arrived cost nothing. In practice the cost tracks how many leads reply, not how often the automation checks.</p>
+  </div>
+</div>
+
+<!-- FIXED SECTIONS -->
+<section id="h.68f0b8918457bce8_82" style="background:#ffffff;padding:8px 20px;"><div style="max-width:760px;margin:0 auto;"><hr style="border:none;border-top:1px solid #d9d9d9;margin:0;"></div></section>
+<section id="h.5a0263770fa94d5d_3" style="background:#ffffff;padding:24px 20px;"><div style="max-width:760px;margin:0 auto;"><a href="#" style="display:inline-block;font-family:'Lato',sans-serif;font-size:15px;font-weight:400;color:#ffffff;background:#37474F;padding:12px 28px;border-radius:4px;text-decoration:none;letter-spacing:0.3px;">Button label</a></div></section>
+
+<!-- CLOSING BAND -->
+<div class="closing-band">
+  <div class="col">
+    <p>Updated by: Julienne</p>
+    <p>Last Update: 23 September 2026</p>
+  </div>
+</div>
+
+</body>
+</html>
