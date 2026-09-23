@@ -1,0 +1,17 @@
+## set up before main task:
+**table: ** create a table called lead_response_instances. columns should be: id, created_at, lead_id (id from lead_responses table), message_id (gmail), ac_note_datetime, stage_change_datetime
+**backfill: ** do a one time backfill to insert rows into lead_responses table. only insert rows for threads in the label:@-sales-to-action-outbound-lead-responses but email address is not yet in the lead_responses table.
+
+## openai_api:
+**loc:** "C:\Users\Cloverly\claude_code\process_leads_per_response\openai_api_key.txt"
+**save:** add this to google secret manager only if it is not there yet.
+
+## main task steps:
+1. create an appscript project that runs every minute to watch James' gmail label label:@-sales-to-action-outbound-lead-responses 
+2. if there is a reply from the lead in the last 10 minutes, insert a row into lead_response_instances per lead reply.
+3. only insert a row if the gmail message_id is not yet in the table, otherwise just skip it.
+4. create a note in the deal in AC. say, "Lead responded with "<insert main message of the email (you can use openai_api to access an openAI model for this).> /n This note was posted thru an AppScript Automation."
+5. use openai_api again to let ai decide if based on the response, the stage of the deal should be changed to any of the following: "CONTACT MADE - NO REPLY",  "CONTACT MADE - NO REPLY",  "CONTACT MADE - REPLY NO",  "F2F/ SALES DEMO BOOKED", "Missed Deals (Due to Conflict of Schedule, When Schedules Collide)", "Unqualified: Interest shown (no needs defined - no budget/ dates/ event)", "Qualified: Sent proposal + avails NO AUTOMATION FOLLOWUP***", "DEAL WON: SOW NOT returned - awaiting briefing call, travel etc"
+6. if AI decides stage should be changed, then change the deal stage in AC.
+7. if the stage was changed, add another note in the deal. say, "Stage changed to <insert stage>. /n This note was posted thru an AppScript Automation."
+8. if the stage was changed, update stage_change_datetime column.

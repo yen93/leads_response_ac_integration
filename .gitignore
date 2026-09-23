@@ -1,0 +1,14 @@
+# Live secrets — never commit
+openai_api_key.txt
+creds.txt
+*.key
+*.pem
+.env
+*.env
+
+# Dependencies
+node_modules/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db

@@ -1,0 +1,66 @@
+================================================================================
+AS-BUILT — process_leads_per_response
+Last updated: 2026-09-23
+================================================================================
+
+OVERVIEW
+- Downstream actor for the outbound lead-response pipeline. The upstream router
+  (../outbound_lead_response_automations) moves a follow-up thread into the Gmail
+  label "@-sales-to-action-outbound-lead-responses" when a lead replies and records
+  the lead into public.lead_responses. THIS project reacts to those replies: it logs
+  each reply message, posts an ActiveCampaign deal note, and applies an AI-decided
+  deal-stage change.
+- Runs as a single Google Apps Script inside james@myadventuregroup.com.au's Gmail.
+  This repo is the source of truth; deploy = paste Code.gs into a script.google.com
+  project. No build step / package manager / tests.
+
+SCRIPTS
+- Code.gs — every-minute automation. processLeadResponses() -> processLabel_(10):
+  scans the watch label; for each lead-reply message in the last 10 minutes, writes
+  a lead_response_instances row (dedup by Gmail message_id), calls OpenAI once for a
+  summary + stage recommendation, posts the "Lead responded with ..." AC deal note
+  (stamps ac_note_datetime), and if a different allowed stage is recommended, changes
+  the deal stage + posts "Stage changed to ..." (stamps stage_change_datetime).
+  Also: backfillLeadResponsesOnce() (run-once — fills lead_responses for existing
+  label threads via the process_lead_responses RPC), testRunOnce(),
+  createEveryMinuteTrigger()/deleteTriggers().
+  Requires (Apps Script Script Properties): SUPABASE_SERVICE_ROLE_KEY, AC_API_URL,
+  AC_API_TOKEN, OPENAI_API_KEY. Config consts (label token, window, model
+  gpt-4o-mini, STAGE_NAME_TO_ID) at the top of the file.
+- appsscript.json — Australia/Sydney tz, V8; OAuth scopes gmail.modify,
+  script.scriptapp, script.external_request.
+
+EXTERNAL INTEGRATIONS
+- Supabase — MAGTestProject (https://aivitcomiywiysrfwqxt.supabase.co), PostgREST +
+  RPC. Auth via service_role key in Script Property SUPABASE_SERVICE_ROLE_KEY (used
+  as both apikey and Authorization: Bearer).
+- ActiveCampaign (https://myadventuregroup.api-us1.com) — v3 REST, called directly
+  from Apps Script. Token in Script Property AC_API_TOKEN (Api-Token header).
+  Endpoints used: POST /api/3/deals/{id}/notes, GET/PUT /api/3/deals/{id}.
+- OpenAI (https://api.openai.com/v1/chat/completions) — model gpt-4o-mini,
+  response_format json_object. Key in Script Property OPENAI_API_KEY.
+- Google Secret Manager — project claudegwscli-502400, secret OPENAI_API_KEY
+  (version 1, central copy of the OpenAI key). Created this session.
+
+DATA STORES (Supabase MAGTestProject)
+- public.lead_response_instances (created this project) — one row per processed
+  lead-reply message. Columns: id (bigint identity PK), created_at (timestamptz
+  default now()), lead_id (bigint FK -> lead_responses.id), message_id (text UNIQUE
+  = Gmail message id / dedup key), ac_note_datetime (timestamptz), stage_change_
+  datetime (timestamptz). RLS enabled.
+- public.lead_responses (pre-existing, populated upstream) — read for id +
+  ac_deal_created (the AC deal to act on); the process_lead_responses(_email_add_sent)
+  RPC inserts a missing lead (dedup by email).
+
+AUTOMATIONS / ROUTINES
+- processLeadResponses() — Apps Script time-driven trigger, every 1 minute, in
+  James's mailbox (installed via createEveryMinuteTrigger()). Idempotent: a message
+  is "done" once its instance row has ac_note_datetime set; unfinished rows resume on
+  the next sweep. A script-wide LockService lock prevents overlapping ticks.
+
+SECRETS
+- openai_api_key.txt — live OpenAI key sitting in the working tree; gitignored.
+- ../outbound_lead_response_automations/creds.txt — AC token + Supabase sbp token
+  (sibling project; gitignored there). All runtime secrets live in Apps Script
+  Script Properties, never in Code.gs.
+================================================================================
