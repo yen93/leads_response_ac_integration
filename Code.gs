@@ -7,7 +7,7 @@
  * REPLIES, and records the lead into public.lead_responses (email -> AC contact /
  * account / deal) via the process_lead_responses RPC.
  *
- * This script ACTS on those to-action threads. Every minute it scans the label and,
+ * This script ACTS on those to-action threads. Every 5 minutes it scans the label and,
  * for each lead-reply message in the last ACTIVE_WINDOW_MINUTES, it:
  *   1. logs the reply once per Gmail message id in public.lead_response_instances
  *      (message_id is UNIQUE, so a message is processed once);
@@ -40,7 +40,7 @@ const SUPABASE_URL = 'https://aivitcomiywiysrfwqxt.supabase.co';
 const WATCH_LABEL_TOKEN = '@-sales-to-action-outbound-lead-responses';
 
 /** Only inspect messages that arrived within this many minutes (keeps reads tiny). */
-const ACTIVE_WINDOW_MINUTES = 10;
+const ACTIVE_WINDOW_MINUTES = 15;
 
 /** Max threads to look at per run. */
 const BATCH_SIZE = 150;
@@ -737,16 +737,18 @@ function normalizeLabel_(name) {
 // ---------------------------------------------------------------------------
 
 /**
- * Install a time-driven trigger that runs processLeadResponses() every minute.
+ * Install a time-driven trigger that runs processLeadResponses() every 5 minutes.
  * Safe to run more than once: it clears existing triggers first.
+ * (Was every 1 minute; slowed to 5 to cut shared Gmail quota usage. With
+ * ACTIVE_WINDOW_MINUTES = 15, every message still gets ~3 sweeps of retry room.)
  */
 function createEveryMinuteTrigger() {
   deleteTriggers();
   ScriptApp.newTrigger('processLeadResponses')
     .timeBased()
-    .everyMinutes(1)
+    .everyMinutes(5)
     .create();
-  console.log('Trigger installed: processLeadResponses() every 1 minute.');
+  console.log('Trigger installed: processLeadResponses() every 5 minutes.');
 }
 
 /** Remove all triggers for processLeadResponses() (the off switch). */

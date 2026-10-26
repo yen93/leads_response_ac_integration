@@ -10,6 +10,14 @@ label **`@-sales-to-action-outbound-lead-responses`**. It is deployed by pasting
 `Code.gs` into a script.google.com project under James's account — this repo is the
 source of truth, not a deploy target. No build step, package manager, or test suite.
 
+> **Shared Gmail quota.** This script, its upstream sibling
+> `outbound_lead_response_automations`, and the Personalized Batch Mailer all run
+> under **james@**, sharing one per-account Apps Script Gmail quota pool. Both
+> watchers were slowed from every 1 minute to **every 5 minutes** (active window
+> 10 → 15) on 2026-10-26 because the every-minute cadence drained the pool and
+> made the mailer fail with "Service invoked too many times for one day: premium
+> gmail". Keep polling slow and Gmail calls per run minimal.
+
 It is the **downstream actor** for `../outbound_lead_response_automations` (the
 router). The router detects a lead reply, records the lead into
 `public.lead_responses`, and moves the thread into the watch label. This script then,
@@ -18,7 +26,7 @@ ActiveCampaign deal note, and (via OpenAI) optionally changes the deal's stage.
 
 ## Architecture / flow (read before editing Code.gs)
 
-Every minute, `processLeadResponses()` → `processLabel_(ACTIVE_WINDOW_MINUTES)`. Under
+Every 5 minutes, `processLeadResponses()` → `processLabel_(ACTIVE_WINDOW_MINUTES)`. Under
 one script-wide lock it searches the watch label, and for each **message** newer than
 the window whose sender is an external lead (not our domain, not a system/bounce
 sender) it calls `handleReplyMessage_(message, leadEmail)`:

@@ -1,0 +1,101 @@
+================================================================================
+CHAT HISTORY EXPORT — 2026-10-26
+Session: Diagnose the Personalized Batch Mailer "Service invoked too many times
+         for one day: premium gmail" failure, trace it to the always-on Gmail
+         watchers sharing James's Apps Script Gmail quota, and slow both watcher
+         triggers from every 1 minute to every 5 minutes (active window 10 -> 15).
+================================================================================
+
+--------------------------------------------------------------------------------
+USER:
+Reported the batch mailer failed with the pasted error: subject "TEST Bureau
+Batch Mailer (Pls Ignore)" — "Service invoked too many times for one day:
+premium gmail."
+
+--------------------------------------------------------------------------------
+ASSISTANT:
+Read the batch mailer's Code.gs (in ../batch_mailer) and identified the error as
+Google Apps Script's per-account DAILY Gmail quota, not a code bug and not
+Gmail's own send limit. Explained the mailer's pre-send guard
+(MailApp.getRemainingDailyQuota) only measures the recipient-send quota, so it
+can't catch the broader Gmail service-invocation limit that reads also consume.
+
+--------------------------------------------------------------------------------
+USER:
+Clarified they ran this custom app only once today, but have other Apps Script
+Gmail watchers running continuously in the background in the same Gmail account.
+
+--------------------------------------------------------------------------------
+ASSISTANT:
+Confirmed Apps Script quotas are per-user and POOLED across every script project
+running as that account — so the always-on watchers draw from the same Gmail pool
+and were the likely drain.
+
+--------------------------------------------------------------------------------
+USER:
+Asked the PH reset time; whether it's a Gmail vs Apps Script limit (/q, read-only);
+and how many invocations are safe per day.
+
+--------------------------------------------------------------------------------
+ASSISTANT:
+- Reset: ~3:00 PM PH through Oct 31, 2026 (PDT), ~4:00 PM PH from Nov 2 (PST).
+- It is an Apps Script limit on the Gmail service (counts reads too), not Gmail's
+  own send limit.
+- No published hard read number; budget to keep an account's reads in the low
+  thousands/day. Formula: runs/day = 1440 / interval_minutes.
+
+--------------------------------------------------------------------------------
+USER:
+Pointed to the watcher scripts at C:/Users/Cloverly/claude_code/gmail_watchers.
+
+--------------------------------------------------------------------------------
+ASSISTANT:
+Read both watchers. process_bounced_leads_in_ac is a Supabase edge function (no
+Gmail quota). This project (process_leads_per_response, processLeadResponses) and
+the upstream router (outbound_lead_response_automations, moveThreads) both run
+EVERY 1 MINUTE. This script costs ~2 Gmail calls/run idle (getUserLabels + search);
+combined with the router, ~11,500+ Gmail reads/day floor. Flagged a possible
+account mismatch (code says james@, mailer comment said julienne@).
+
+--------------------------------------------------------------------------------
+USER:
+Corrected: the batch mailer runs as James.
+
+--------------------------------------------------------------------------------
+ASSISTANT:
+Confirmed mailer + both watchers share one account (James) / one Gmail pool, so
+the every-minute watchers are the cause. Proposed slowing both to every 5 minutes,
+widening ACTIVE_WINDOW_MINUTES 10 -> 15 (keeps ~3 sweeps of retry coverage),
+cutting the combined floor ~11,500 -> ~2,300 reads/day. Noted editing Code.gs does
+not change the live trigger — James must re-run the setup function.
+
+--------------------------------------------------------------------------------
+USER:
+Said yes, apply the edits to both watchers.
+
+--------------------------------------------------------------------------------
+ASSISTANT:
+Edited this project's Code.gs: createEveryMinuteTrigger now everyMinutes(5);
+ACTIVE_WINDOW_MINUTES 10 -> 15; header + function comments updated to 5 minutes.
+(Same changes applied to the sibling router.) The function name
+createEveryMinuteTrigger was kept intentionally (now a misnomer) to preserve
+deploy muscle-memory.
+
+--------------------------------------------------------------------------------
+USER:
+Asked for an instruction txt file on what to do (still need access to James's
+account; can only implement once logged in), and to run /dcp on each folder.
+
+--------------------------------------------------------------------------------
+ASSISTANT:
+Created gmail_watchers/APPLY_TRIGGER_CHANGES_INSTRUCTIONS.txt (why, what changed,
+step-by-step deploy for James: paste Code.gs, re-run createEveryMinuteTrigger per
+project, verify "Every 5 minutes" in Triggers, retry the mailer after the quota
+reset). Then ran /dcp on each watcher folder: saved this chat history, updated
+as_built.txt and CLAUDE.md to the 5-minute cadence, confirmed .gitignore already
+covers openai_api_key.txt / creds.txt. No git commands were run — the user commits
+themselves.
+
+================================================================================
+END OF EXPORT
+================================================================================

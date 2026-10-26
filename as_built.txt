@@ -1,6 +1,6 @@
 ================================================================================
 AS-BUILT — process_leads_per_response
-Last updated: 2026-09-23
+Last updated: 2026-10-26
 ================================================================================
 
 OVERVIEW
@@ -15,8 +15,8 @@ OVERVIEW
   project. No build step / package manager / tests.
 
 SCRIPTS
-- Code.gs — every-minute automation. processLeadResponses() -> processLabel_(10):
-  scans the watch label; for each lead-reply message in the last 10 minutes, writes
+- Code.gs — every-5-minute automation. processLeadResponses() -> processLabel_(15):
+  scans the watch label; for each lead-reply message in the last 15 minutes, writes
   a lead_response_instances row (dedup by Gmail message_id), calls OpenAI once for a
   summary + stage recommendation, posts the "Lead responded with ..." AC deal note
   (stamps ac_note_datetime), and if a different allowed stage is recommended, changes
@@ -53,8 +53,12 @@ DATA STORES (Supabase MAGTestProject)
   RPC inserts a missing lead (dedup by email).
 
 AUTOMATIONS / ROUTINES
-- processLeadResponses() — Apps Script time-driven trigger, every 1 minute, in
-  James's mailbox (installed via createEveryMinuteTrigger()). Idempotent: a message
+- processLeadResponses() — Apps Script time-driven trigger, every 5 minutes
+  (ACTIVE_WINDOW_MINUTES = 15), in James's mailbox (installed via
+  createEveryMinuteTrigger(), name kept despite now installing a 5-minute trigger).
+  Slowed from every 1 minute on 2026-10-26 to cut shared Gmail-service quota usage
+  (mailer + both watchers run as James and share one per-account Apps Script Gmail
+  pool). Idempotent: a message
   is "done" once its instance row has ac_note_datetime set; unfinished rows resume on
   the next sweep. A script-wide LockService lock prevents overlapping ticks.
 
